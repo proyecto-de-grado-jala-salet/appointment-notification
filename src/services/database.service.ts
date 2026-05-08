@@ -14,7 +14,7 @@ export class DatabaseService {
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS "NotificationLog" (
           "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          "scheduledsessionid" VARCHAR(255) NOT NULL,
+          "scheduledsessionid" UUID NOT NULL,
           "notifiedat" TIMESTAMP NOT NULL DEFAULT NOW(),
           "createdat" TIMESTAMP NOT NULL DEFAULT NOW()
       );
