@@ -75,7 +75,7 @@ export class LinkManager {
   private async sendToWhatsApp(payload: LinkPayload): Promise<void> {
     try {
       const response = await axios.post(
-        `https://graph.facebook.com/v22.0/${this.phoneNumberId}/messages`,
+        `https://graph.facebook.com/v24.0/${this.phoneNumberId}/messages`,
         payload,
         {
           headers: {
