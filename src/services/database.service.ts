@@ -9,6 +9,29 @@ export class DatabaseService {
     this.pool = new Pool(config.database);
   }
 
+  // Método para asegurar que la tabla NotificationLog existe
+  async ensureNotificationTableExists(): Promise<void> {
+    const createTableSQL = `
+      CREATE TABLE IF NOT EXISTS "NotificationLog" (
+          "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "scheduledsessionid" VARCHAR(255) NOT NULL,
+          "notifiedat" TIMESTAMP NOT NULL DEFAULT NOW(),
+          "createdat" TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_notification_log_scheduledsessionid 
+      ON "NotificationLog"("scheduledsessionid");
+    `;
+
+    try {
+      await this.pool.query(createTableSQL);
+      console.log('✅ Tabla NotificationLog verificada/creada exitosamente');
+    } catch (error: any) {
+      console.error('❌ Error creando/verificando tabla NotificationLog:', error.message);
+      throw error;
+    }
+  }
+
   async getUpcomingSessions(): Promise<
     {
       session: ScheduledSession;
@@ -17,6 +40,9 @@ export class DatabaseService {
       specialist: Specialist;
     }[]
   > {
+    // Asegurar que la tabla existe antes de la consulta
+    await this.ensureNotificationTableExists();
+
     const totalReminderMinutes =
       config.notification.reminderHours * 60 +
       config.notification.reminderMinutes;
@@ -66,7 +92,7 @@ export class DatabaseService {
         const sessionTime = new Date(row.startSessionDateTime);
         const timeLeft = Math.round(
           (sessionTime.getTime() - Date.now()) / (1000 * 60 * 60)
-        ); // Horas
+        );
         console.log(
           `   ${index + 1}. ${
             row.patient_names
@@ -107,7 +133,9 @@ export class DatabaseService {
 
   async markAsNotified(sessionId: string): Promise<void> {
     try {
-      // Generar un UUID para la columna id
+      // Asegurar que la tabla existe antes de insertar
+      await this.ensureNotificationTableExists();
+      
       const { randomUUID } = await import("crypto");
       const notificationId = randomUUID();
 
@@ -123,10 +151,12 @@ export class DatabaseService {
     }
   }
 
-  // Método para verificar que la tabla se creó correctamente
   async verifyNotificationTable(): Promise<void> {
     try {
       console.log("🔍 Verificando tabla NotificationLog...");
+      
+      // Asegurar que la tabla existe antes de verificar
+      await this.ensureNotificationTableExists();
 
       // Verificar si la tabla existe
       const tableExists = await this.pool.query(`
@@ -166,6 +196,7 @@ export class DatabaseService {
       }
     } catch (error) {
       console.error("❌ Error verificando tabla:", error);
+      throw error;
     }
   }
 
